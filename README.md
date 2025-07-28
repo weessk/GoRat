@@ -14,7 +14,7 @@ This is for "education". If you get your ass thrown in jail for using this on yo
 - **Data Stealing:** Grabs Discord tokens and browser data.
 - **Live Surveillance:** `!screen` command to see what they see.
 - **Self-Destruct:** `!exit` command to wipe all traces.
-- **🔥 TINY:** The final `.exe` is **under 3MB**. Easy to spread.
+- **🔥 TINY:** The final `.exe` is **under 4MB**. Easy to spread.
 
 ## 🤔 Is It FUD? (Detection Status)
 Let's be real. No public tool stays FUD forever.
@@ -25,7 +25,7 @@ Let's be real. No public tool stays FUD forever.
 So yeah, **use it while it's hot.**
 
 ### Proof (as of right now):
-![proof](https://i.ibb.co/hxbTcYDJ/ima5ge.png)
+![proof](https://i.ibb.co/yFS4Gxzm/image.png)
 
 ---
 
