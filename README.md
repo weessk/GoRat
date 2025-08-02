@@ -1,4 +1,6 @@
 # Rat on Go (BETA)
+![GitHub stars](https://img.shields.io/github/stars/weessk/GoolangRat-C2?style=social)
+![Forks](https://img.shields.io/github/forks/weessk/GoolangRat-C2?style=social)
 New Discord RAT & Stealer. Made with Go so it's small, fast, and doesn't eat all the RAM.
 
 **This is a BETA version.** It means it works, but I might add more evil shit later. Or maybe I'll get bored and abandon it. Who knows.
