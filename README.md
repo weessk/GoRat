@@ -53,6 +53,7 @@ Use these in the victim's channel on Discord.
 | `!persistencia`   | Makes sure it stays alive after a reboot.     |
 | `!tokengrab`      | Steals Discord tokens.                        |
 | `!browser`        | Steals browsers data.                         |
+| `!rootkit`        | Hide the process                              |
 | `!exit`           | **PANIC BUTTON.** Deletes itself everywhere.  |
 
 ---
