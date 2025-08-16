@@ -2,7 +2,7 @@ package main
 
 import (
 	"RatOnGo/internal/bot"
-	"RatOnGo/internal/crypto"
+	crypto "RatOnGo/internal/encryptation"
 	"context"
 )
 
@@ -24,4 +24,3 @@ func main() {
 	ctx := context.Background()
 	client.Start(ctx)
 }
-
