@@ -57,4 +57,5 @@ Use these in the victim's channel on Discord.
 | `!exit`           | **PANIC BUTTON.** Deletes itself everywhere.  |
 
 ---
-*Have fun.*
+## Changelog
+all the juicy updates: [see changelog](./CHANGELOG.md)
