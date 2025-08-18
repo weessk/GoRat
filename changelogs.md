@@ -1,12 +1,15 @@
-### [Released]
-#### Added
-- PoC support for Chrome v127+ decryption (app_bound_encryption_key)
-- Multi-profile scanning (no longer limited to "Default")
-- Bookmarks parser for full bookmarks extraction
-- Extended Chromium-based browser support (Beta/Dev/Canary, Vivaldi, etc.)
+# changelog - latest stuff n hacks
 
-#### Changed
-- Full module refactor for better performance, stability, and easier future parser additions
+## [Released]
 
-#### Notes
-- Chrome v127+ decryption is experimental / PoC and may break on future builds
+### added
+- poc for chrome v127+ decryption (app_bound, super experimental lol)
+- now scans all profs, not just "default"
+- bookmarks parser, grabs all da bookmarks
+- more chromium targets: beta/dev/canary + funky ones like vivaldi
+
+### changed
+- full module refactor, faster & cleaner, easier to add future parsers
+
+### notes
+- chrome v127+ decryption is mostly a test/poc, may break next builds
