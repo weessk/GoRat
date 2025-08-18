@@ -19,6 +19,8 @@ This is for "education". If you get your ass thrown in jail for using this on yo
 - **Self-Destruct:** `!exit` command to wipe all traces.
 - **🔥 TINY:** The final `.exe` is **under 4MB**. Easy to spread.
 
+📜 **Changelog:** [see latest updates](./CHANGELOG.md)
+
 ## 🤔 Is It FUD? (Detection Status)
 Let's be real. No public tool stays FUD forever.
 
@@ -57,5 +59,4 @@ Use these in the victim's channel on Discord.
 | `!exit`           | **PANIC BUTTON.** Deletes itself everywhere.  |
 
 ---
-## Changelog
-all the juicy updates: [see changelog](./CHANGELOG.md)
+*Have fun.*
