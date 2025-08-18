@@ -1,6 +1,6 @@
 # changelog - latest stuff n hacks
 
-## [Released]
+## v0.3.2 - third drop? idk lol 🔥
 
 ### added
 - poc for chrome v127+ decryption (app_bound, super experimental lol)
@@ -13,3 +13,4 @@
 
 ### notes
 - chrome v127+ decryption is mostly a test/poc, may break next builds
+- honestly, no clue if this is really the 3rd drop lol, just rollin' with it
