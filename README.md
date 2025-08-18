@@ -1,4 +1,4 @@
-# Rat on Go (BETA)
+# Go Rat (BETA)
 ![GitHub stars](https://img.shields.io/github/stars/weessk/GoolangRat-C2?style=social)
 ![Forks](https://img.shields.io/github/forks/weessk/GoolangRat-C2?style=social)
 
