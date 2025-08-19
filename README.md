@@ -17,7 +17,7 @@ This is for "education". If you get your ass thrown in jail for using this on yo
 - **Data Stealing:** Grabs Discord tokens and browser data.
 - **Live Surveillance:** `!screen` command to see what they see.
 - **Self-Destruct:** `!exit` command to wipe all traces.
-- **🔥 TINY:** The final `.exe` is **under 4MB**. Easy to spread.
+- **🔥 TINY:** The final `.exe` is **under 3MB**. Easy to spread.
 
 📜 **Changelog:** [see latest updates](./CHANGELOG.md)
 
