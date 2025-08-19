@@ -1,5 +1,23 @@
 # changelog - latest stuff n hacks
 
+## v0.3.4 - Shell Stability Fix 安定
+
+### fixed
+
+*   annoying ass `context canceled` bug on `!cmd` & `!shell`/`!ps` is finally squashed.
+*   commands were basically getting aborted the second they were sent lol.
+*   turns out the timeout context was being a little bitch and dying too early. moved it inside the goroutine, so now shell commands actually have time to run.
+
+### changed
+
+*   upped the default command timeout from 30s to 60s, just in case you run some slow-ass shit.
+
+### notes
+
+*   nothing here
+
+---
+
 ## v0.3.3 - cockroach drop 
 
 ### added
