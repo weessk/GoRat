@@ -12,8 +12,8 @@ if exist %GO_BINARY_NAME% del %GO_BINARY_NAME%
 if exist %TEMP_FILE% del %TEMP_FILE%
 
 echo.
-echo [+] RatOnGo Stealth Builder - Using PROVEN method
-echo [+] Same encryption that worked before
+echo [+] RatOnGo Builder 
+echo [+] view changelog.md rolf
 echo.
 
 set /p "TOKEN=Discord Bot Token: "
@@ -80,5 +80,6 @@ set "result=!result:~0,-1!"
 
 endlocal & set "%2=%result%"
 exit /b
+
 
 
