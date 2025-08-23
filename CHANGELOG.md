@@ -1,5 +1,27 @@
 # changelog - latest stuff n hacks
 
+## v0.5.0 - the ghost in the machine 👻
+
+### added
+
+*   `!hide` now takes args (`peb`, `hook`, `spoof`, `all`) for surgical stealth
+*   `!admin` & `!system` also take args to pick your exploit (`fodhelper`, `pipe`, etc)
+*   `!stealth` command to check what evasion shit is running
+*   `!help` show existing commands, duh
+
+### changed
+
+*   rewrote the whole fucking stealth module, it's smarter now & less crashy
+*   help menu is updated with all the new toys and examples
+
+### notes
+
+*   this is all about operator control, you choose the weapon
+*   opsec is still your problem dont be a dumbass
+*   i think i should add an obfuscator btw
+
+---
+
 ## v0.3.4 - Shell Stability Fix 安定
 
 ### fixed
