@@ -1,5 +1,13 @@
 # changelog - latest stuff n hacks
 
+## v0.5.2 - idk
+
+###
+
+* better app bound decryption
+
+---
+
 ## v0.5.0 - the ghost in the machine 👻
 
 ### added
