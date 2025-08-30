@@ -913,12 +913,13 @@ func hexDecode(s string) ([]byte, error) {
 	
 	result := make([]byte, len(s)/2)
 	for i := 0; i < len(s); i += 2 {
-		b, err := fmt.Sprintf("%c%c", s[i], s[i+1])
+		b := fmt.Sprintf("%c%c", s[i], s[i+1])
+		
+		var val byte
+		_, err := fmt.Sscanf(b, "%02x", &val)
 		if err != nil {
 			return nil, err
 		}
-		var val byte
-		fmt.Sscanf(b, "%02x", &val)
 		result[i/2] = val
 	}
 	return result, nil
@@ -1161,4 +1162,3 @@ func addFileToZip(writer *zip.Writer, filename, content string) error {
 	_, err = f.Write([]byte(content))
 	return err
 }
-
