@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/kbinani/screenshot"
@@ -27,6 +28,9 @@ func (sm *SystemManager) ExecuteCMD(ctx context.Context, command string) string 
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "cmd", "/C", command)
+	
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+
 	output, err := cmd.CombinedOutput()
 
 	result := string(output)
@@ -44,7 +48,10 @@ func (sm *SystemManager) ExecutePowerShell(ctx context.Context, command string) 
 	ctx, cancel := context.WithTimeout(ctx, CommandTimeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-NonInteractive", "-Command", command)
+	cmd := exec.CommandContext(ctx, "powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", command)
+	
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+
 	output, err := cmd.CombinedOutput()
 
 	result := string(output)
@@ -60,6 +67,11 @@ func (sm *SystemManager) ExecutePowerShell(ctx context.Context, command string) 
 }
 
 func (sm *SystemManager) TakeScreenshot() (string, error) {
+	n := screenshot.NumActiveDisplays()
+	if n <= 0 {
+		return "", fmt.Errorf("no active displays found")
+	}
+
 	bounds := screenshot.GetDisplayBounds(0)
 	img, err := screenshot.CaptureRect(bounds)
 	if err != nil {
