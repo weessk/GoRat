@@ -1,5 +1,17 @@
 # changelog - latest stuff n hacks
 
+## v0.6.0 control update
+
+### added
+
+* wmi persistence method finally added
+
+### changed
+
+* it upgrades persistence and throws in some new methods, imo its better now
+
+---
+
 ## v0.5.2 - idk
 
 ###
