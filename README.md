@@ -6,9 +6,6 @@ A Remote Administration Tool & Stealer developed in Go. It utilizes Discord for 
 
 **Current Status: BETA.** The tool is functional but under active development. Features may be added or changed.
 
-## Disclaimer
-This project is intended for educational and research purposes only. The author is not responsible for any misuse or damage caused by this software. Unauthorized access to computer systems is illegal.
-
 ---
 ## Features
 - **Remote Shell:** Full command-line access via `cmd` and `powershell`.
