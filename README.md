@@ -17,7 +17,7 @@ A lightweight RAT and stealer, cooked up in Go. It uses Discord for C2, keeping 
 - **Data Exfiltration:** Grabs Discord tokens and browser data (passwords, cookies, etc.).
 - **Live Surveillance:** `!screen` command for a live look at the desktop.
 - **Self-Destruct:** `!exit` command nukes the agent from the system.
-- ** Tiny Payload:** The final `.exe` is **under 3MB**.
+- **Tiny Payload:** The final `.exe` is **under 3MB**.
 
 📜 **Changelog:** [See latest updates](./CHANGELOG.md)
 
